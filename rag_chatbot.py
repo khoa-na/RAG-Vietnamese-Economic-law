@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from unload_models import unload_model
 
 # Load environment variables
 load_dotenv()
@@ -100,6 +101,8 @@ Ngữ cảnh:
     while True:
         query = input("\nBạn hỏi: ")
         if query.lower() in ["exit", "quit", "thoát"]:
+            print("--- Hệ thống đã kết thúc. ---")
+            unload_model("qwen3-embedding:4b")
             break
         
         if not query.strip():

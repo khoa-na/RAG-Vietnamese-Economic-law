@@ -7,6 +7,8 @@ from langchain_community.document_loaders import TextLoader, DirectoryLoader
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
+from datetime import datetime
+from unload_models import unload_model
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -44,7 +46,7 @@ def load_documents(docs_path="docs"):
 
     return documents
 
-def split_documents(documents, chunk_size=2000, chunk_overlap=200):
+def split_documents(documents, chunk_size=8000, chunk_overlap=800):
     """Split documents into smaller chunks with overlap, optimized for Vietnamese legal text"""
     print("Splitting documents into chunks...")
     
@@ -53,13 +55,16 @@ def split_documents(documents, chunk_size=2000, chunk_overlap=200):
     # 2. Split by Clauses (1. ) - carefully to avoid confusion with dates or other numbers
     # 3. Split by Points (a) )
     separators = [
-        r"\nĐiều \d+\.",      # Article
-        r"\n\d+\. ",          # Clause (start of line)
-        r"\n[a-zđ]\) ",       # Point (start of line, including 'đ')
-        "\n\n",               # Paragraph break
-        "\n",                 # Line break
-        " ",                  # Word
-        ""                    # Char
+        r"\nChương [IVXLCDM]+\b", # Chapter (Roman numerals)
+        r"\nChương \d+\b",        # Chapter (Digits)
+        r"\nMục \d+\b",           # Section
+        r"\nĐiều \d+\.",          # Article
+        r"\n\d+\. ",              # Clause
+        r"\n[a-zđ]\) ",           # Point
+        "\n\n",
+        "\n",
+        " ",
+        ""
     ]
     
     text_splitter = RecursiveCharacterTextSplitter(
@@ -112,6 +117,10 @@ def create_vector_store(chunks, persist_directory="db/chroma_db"):
     print("--- Finished creating vector store ---")
     
     print(f"Vector store created and saved to {persist_directory}")
+
+    # Unload model to free VRAM
+    print("\n--- Cleaning up resources ---")
+    unload_model("qwen3-embedding:4b")
     return vectorstore
 
 def main():

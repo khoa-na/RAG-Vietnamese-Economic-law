@@ -43,20 +43,25 @@ A Retrieval-Augmented Generation (RAG) system designed to answer questions about
     megallm_api_key=your_api_key_here
     ```
 
+5.  **Install Playwright** (for Crawler):
+    ```bash
+    playwright install
+    ```
+
 ## Usage
 
 ### 1. Ingestion (Build Knowledge Base)
 Process documents from the `docs/` folder and build the Vector Store.
 *Note: If you are switching models, delete the old `db/` folder first.*
 ```bash
-python 1_ingestion_pipeline.py
+python ingestion_pipeline.py
 ```
 *Tip: Ensure Ollama is running in the background.*
 
 ### 2. Run RAG Chatbot
 Start the interactive Q&A system.
 ```bash
-python 3_rag_pipeline.py
+python rag_chatbot.py
 ```
 **Example Interaction:**
 > **Bạn hỏi**: Mua bán hàng hóa là gì?
@@ -68,11 +73,25 @@ If you want to see exactly which documents are being retrieved before the AI ans
 python 3_rag_debug.py
 ```
 
+### 4. Data Acquisition (Crawler)
+Fetch legal documents from `phapluat.gov.vn`.
+```bash
+python 0_crawler.py
+```
+
+### 5. Manage Resources (VRAM)
+Unload the embedding model from memory (VRAM) when finished to free up resources.
+```bash
+python unload_models.py
+```
+
 ## Project Structure
 
-- `1_ingestion_pipeline.py`: Data loading and embedding (Ollama).
-- `2_retrieval_pipeline.py`: Simple semantic search test.
-- `3_rag_pipeline.py`: Full RAG application.
+- `0_crawler.py`: Fetch legal text from `phapluat.gov.vn`.
+- `ingestion_pipeline.py`: Data loading and embedding (Ollama).
+- `rag_chatbot.py`: Full RAG application.
 - `3_rag_debug.py`: Debug tool with verbose retrieval output.
 - `docs/`: Place your legal text files (`.txt`) here.
+- `docs/`: Place your legal text files (`.txt`) here.
 - `db/`: Stores the ChromaDB vector database.
+- `unload_models.py`: Utility to unload models from VRAM.
