@@ -210,3 +210,7 @@ error_log.txt
 error_log_2.txt
 
 retrieval_output.txt
+
+rag_output.txt
+rag_test_results.txt
+test_inputs.txt
