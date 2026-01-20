@@ -4,7 +4,7 @@ import sys
 # Set encoding for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
@@ -44,13 +44,29 @@ def load_documents(docs_path="docs"):
 
     return documents
 
-def split_documents(documents, chunk_size=800, chunk_overlap=0):
-    """Split documents into smaller chunks with overlap"""
+def split_documents(documents, chunk_size=2000, chunk_overlap=200):
+    """Split documents into smaller chunks with overlap, optimized for Vietnamese legal text"""
     print("Splitting documents into chunks...")
     
-    text_splitter = CharacterTextSplitter(
+    # Define separators for Vietnamese Legal Text
+    # 1. Split by Articles (Điều X.)
+    # 2. Split by Clauses (1. ) - carefully to avoid confusion with dates or other numbers
+    # 3. Split by Points (a) )
+    separators = [
+        r"\nĐiều \d+\.",      # Article
+        r"\n\d+\. ",          # Clause (start of line)
+        r"\n[a-zđ]\) ",       # Point (start of line, including 'đ')
+        "\n\n",               # Paragraph break
+        "\n",                 # Line break
+        " ",                  # Word
+        ""                    # Char
+    ]
+    
+    text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, 
-        chunk_overlap=chunk_overlap
+        chunk_overlap=chunk_overlap,
+        separators=separators,
+        is_separator_regex=True
     )
     
     chunks = text_splitter.split_documents(documents)

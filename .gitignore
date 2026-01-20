@@ -208,3 +208,5 @@ __marimo__/
 db/
 error_log.txt
 error_log_2.txt
+
+retrieval_output.txt
