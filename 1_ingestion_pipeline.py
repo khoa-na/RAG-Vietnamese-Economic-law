@@ -90,9 +90,15 @@ def create_vector_store(chunks, persist_directory="db/chroma_db"):
     """Create and persist ChromaDB vector store"""
     print("Creating embeddings and storing in ChromaDB...")
         
-    embedding_model = HuggingFaceEmbeddings(
-        model_name="dangvantuan/vietnamese-document-embedding",
-        model_kwargs={"trust_remote_code": True}
+    # embedding_model = HuggingFaceEmbeddings(
+    #     model_name="dangvantuan/vietnamese-document-embedding",
+    #     model_kwargs={"trust_remote_code": True}
+    # )
+    
+    # Switch to Ollama (Qwen3-Embedding-4B)
+    from langchain_ollama import OllamaEmbeddings
+    embedding_model = OllamaEmbeddings(
+        model="qwen3-embedding:4b"
     )
     
     # Create ChromaDB vector store

@@ -15,10 +15,15 @@ persistent_directory = "db/chroma_db"
 def main():
     # Load embeddings and vector store
     print("Loading vector store...")
-    embedding_model = HuggingFaceEmbeddings(
-            model_name="dangvantuan/vietnamese-document-embedding",
-            model_kwargs={"trust_remote_code": True}
-        )
+    # embedding_model = HuggingFaceEmbeddings(
+    #         model_name="dangvantuan/vietnamese-document-embedding",
+    #         model_kwargs={"trust_remote_code": True}
+    #     )
+
+    from langchain_ollama import OllamaEmbeddings
+    embedding_model = OllamaEmbeddings(
+        model="qwen3-embedding:4b"
+    )
 
     db = Chroma(
         persist_directory=persistent_directory,
