@@ -100,10 +100,14 @@ def create_vector_store(chunks, persist_directory="db/chroma_db"):
     #     model_kwargs={"trust_remote_code": True}
     # )
     
-    # Switch to Ollama (Qwen3-Embedding-4B)
-    from langchain_ollama import OllamaEmbeddings
-    embedding_model = OllamaEmbeddings(
-        model="qwen3-embedding:4b"
+    # Define embedding model based on provider (now using hardcoded choice for this script or could load from config)
+    # Ideally should import from graph_config but keeping independent for now or matching logic
+    
+    # We will use the model specified in the plan: dangvantuan/vietnamese-document-embedding
+    print("Initializing HuggingFace embedding model...")
+    embedding_model = HuggingFaceEmbeddings(
+        model_name="dangvantuan/vietnamese-document-embedding",
+        model_kwargs={"trust_remote_code": True}
     )
     
     # Create ChromaDB vector store
@@ -120,7 +124,13 @@ def create_vector_store(chunks, persist_directory="db/chroma_db"):
 
     # Unload model to free VRAM
     print("\n--- Cleaning up resources ---")
-    unload_model("qwen3-embedding:4b")
+    # Unload model to free VRAM (Handled by OS/Torch for HF, or explicit cleanup)
+    print("\n--- Cleaning up resources ---")
+    # unload_model("qwen3-embedding:4b") # Not needed for HF local model in this script context immediately, 
+    # but good practice would be torch.cuda.empty_cache() if running in loop.
+    import torch
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return vectorstore
 
 def main():

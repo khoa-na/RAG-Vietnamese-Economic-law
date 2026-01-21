@@ -9,12 +9,12 @@ This system combines semantic search capabilities with natural language generati
 ## Key Features
 
 - **Semantic Chunking**: Intelligent document splitting strategy that respects Vietnamese legal document hierarchy (Chapter → Section → Article → Clause → Point) to preserve legal context
-- **Advanced Embeddings**: Utilizes `qwen3-embedding:4b` via Ollama for high-quality semantic search with 4-billion parameter model
-- **Vector Database**: ChromaDB implementation with cosine similarity for efficient and accurate retrieval
-- **LLM Integration**: Connects to MegaLLM (OpenAI-compatible API) for natural language answer generation
-- **Source Citation**: Automatically cites specific legal articles and clauses in responses
-- **Debug Tools**: Built-in utilities to inspect retrieved chunks and verify retrieval accuracy
-- **Resource Management**: VRAM management utilities to optimize memory usage
+- **Advanced Embeddings**: Utilizes `dangvantuan/vietnamese-document-embedding` for high-quality semantic search, specifically optimized for Vietnamese legal text.
+- **Vector Database**: ChromaDB implementation with cosine similarity for efficient and accurate retrieval.
+- **LLM Integration**: Connects to MegaLLM (OpenAI-compatible API) for natural language answer generation.
+- **Source Citation**: Automatically cites specific legal articles and clauses in responses.
+- **Debug Tools**: Built-in utilities to inspect retrieved chunks and verify retrieval accuracy.
+- **Resource Management**: Automatic VRAM cleanup for models.
 
 ## System Architecture
 
@@ -28,9 +28,8 @@ The system consists of four main components:
 ## Prerequisites
 
 - **Python**: Version 3.8 or higher
-- **Ollama**: Required for running the embedding model locally
 - **MegaLLM API Key**: Or any OpenAI-compatible API key for the language model
-- **System Requirements**: Minimum 8GB RAM recommended, GPU optional but beneficial for faster embeddings
+- **System Requirements**: Minimum 8GB RAM recommended, CUDA-compatible GPU recommended for faster local embeddings (HuggingFace models).
 
 ## Installation
 
@@ -43,28 +42,12 @@ cd RAG-Vietnamese-Economic-law
 
 ### 2. Install Python Dependencies
 
+### 2. Install Python Dependencies
 ```bash
-pip install langchain-community langchain-chroma langchain-huggingface langchain-openai langchain-ollama python-dotenv chardet sentence-transformers chromadb
+pip install -r requirements.txt
 ```
 
-### 3. Setup Ollama for Embeddings
-
-Download and install Ollama from [ollama.com](https://ollama.com/).
-
-Pull the required embedding model:
-
-```bash
-ollama pull qwen3-embedding:4b
-```
-
-Ensure Ollama is running in the background:
-
-```bash
-ollama serve
-```
-
-### 4. Configure Environment Variables
-
+### 3. Configure Environment Variables
 Create a `.env` file in the project root directory:
 
 ```env
@@ -72,6 +55,8 @@ megallm_api_key=your_api_key_here
 ```
 
 Replace `your_api_key_here` with your actual MegaLLM API key.
+
+
 
 ### 5. Install Playwright (Required for Web Crawler)
 
@@ -91,18 +76,7 @@ If you want to fetch the latest legal documents from official sources:
 python crawler.py
 ```
 
-This will download the following Vietnamese economic laws:
-- Enterprise Law 2020
-- Investment Law 2020
-- Commercial Law 2025
-- Securities Law 2019
-- State Budget Law 2025
-- Labor Law 2019
-- Intellectual Property Law 2025
-- Competition Law 2018
-- Tax Administration Law 2019
-
-Documents are saved to the `docs/` directory as `.txt` files.
+This will download Vietnamese economic laws to `docs/`.
 
 ### Step 2: Build the Knowledge Base
 
@@ -113,17 +87,16 @@ python ingestion_pipeline.py
 ```
 
 **Important Notes**:
-- Ensure Ollama is running before executing this command
-- If switching embedding models, delete the `db/` folder first to avoid conflicts
-- This process may take several minutes depending on document size
-- The system uses a chunk size of 8000 characters with 800 character overlap, optimized for the embedding model's context window
+- This uses the `dangvantuan/vietnamese-document-embedding` model (HuggingFace).
+- If switching embedding models, delete the `db/` folder first to avoid conflicts.
+- The system uses a chunk size of 8000 characters with 800 character overlap.
 
 ### Step 3: Run the Interactive Chatbot
 
 Start the question-answering system:
 
 ```bash
-python rag_chatbot.py
+python rag_chatbot_graph.py
 ```
 
 **Example Interaction**:
@@ -151,13 +124,11 @@ This is useful for:
 
 ### Step 5: Resource Management
 
-Unload the embedding model from VRAM when finished:
+The system automatically unloads models when you exit the chatbot. You can also run:
 
 ```bash
 python unload_models.py
 ```
-
-This frees up GPU/system memory for other tasks.
 
 ## Project Structure
 
@@ -187,35 +158,33 @@ The system uses optimized chunking settings in `ingestion_pipeline.py`:
 
 ### Retrieval Parameters
 
-Configured in `rag_chatbot.py`:
+Configured in `graph_config.py`:
 
-- **Search Type**: Similarity with score threshold
-- **Top K**: 5 most relevant chunks
-- **Score Threshold**: 0.2 (minimum similarity score)
-- **Distance Metric**: Cosine similarity
+- **Top K**: 3 most relevant chunks (optimized for speed)
+- **Score Threshold**: 0.2
+- **Document Grading**: Auto-grading by LLM is disabled by default for performance.
 
 ### LLM Configuration
 
 - **Model**: openai-gpt-oss-120b (via MegaLLM)
-- **Temperature**: 0.3 (balanced between accuracy and creativity)
+- **Temperature**: 0.3
 - **Base URL**: https://ai.megallm.io/v1
 
 ## Technical Details
 
 ### Embedding Model
 
-The system uses `qwen3-embedding:4b`, a 4-billion parameter embedding model that provides:
-- High-quality semantic representations
-- Support for Vietnamese language
-- Efficient local inference via Ollama
-- 8192 token context window
+The system uses `dangvantuan/vietnamese-document-embedding`, a specialized model for Vietnamese:
+- High-quality semantic representations for Vietnamese text
+- 4096 token context window
+- Runs locally via HuggingFace/Transformers
 
 ### Document Processing Pipeline
 
-1. **Loading**: Reads all `.txt` files from `docs/` directory with automatic encoding detection
-2. **Chunking**: Splits documents using recursive character splitting with legal-specific separators
-3. **Embedding**: Generates vector embeddings for each chunk using Ollama
-4. **Storage**: Persists embeddings in ChromaDB with cosine similarity indexing
+1. **Loading**: Reads `.txt` files with auto encoding detection
+2. **Chunking**: Splits documents using recursive character splitting
+3. **Embedding**: Generates vector embeddings for each chunk
+4. **Storage**: Persists in ChromaDB with cosine similarity indexing
 
 ### RAG Chain
 
@@ -249,10 +218,8 @@ The retrieval-augmented generation chain follows this flow:
 
 ## Performance Optimization
 
-- **VRAM Usage**: The embedding model requires approximately 4-6GB VRAM
-- **Processing Time**: Initial ingestion takes 5-15 minutes for 9 legal documents
-- **Query Speed**: Average response time is 2-5 seconds per query
-- **Database Size**: Expect 100-500MB for the vector database depending on document corpus
+- **VRAM Usage**: Optimized to unload models when not in use.
+- **Latency**: Reduced retrieval count (k=3) and disabled extra grading steps for faster response times.
 
 ## Future Enhancements
 
