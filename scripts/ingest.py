@@ -107,30 +107,48 @@ def create_vector_store(chunks, uri=None, table_name=None):
         model_kwargs={"trust_remote_code": True}
     )
     
-    # Embed in batches with progress bar
+    # Delete existing table to avoid conflicts
+    import lancedb as ldb
+    db = ldb.connect(uri)
+    existing = db.table_names()
+    if table_name in existing:
+        db.drop_table(table_name)
+        print(f"Dropped existing table '{table_name}'")
+    
+    # Wrap embedding model to show progress
     from tqdm import tqdm
-    batch_size = 32
     total = len(chunks)
+    print(f"Embedding {total} chunks...")
+    pbar = tqdm(total=total, desc="Embedding", unit="chunk")
     
-    print(f"Embedding {total} chunks (batch size: {batch_size})...")
-    vectorstore = None
+    class ProgressEmbeddings:
+        """Wrapper that adds progress tracking to an embedding model."""
+        def __init__(self, model, progress_bar):
+            self._model = model
+            self._pbar = progress_bar
+        def embed_documents(self, texts):
+            result = self._model.embed_documents(texts)
+            self._pbar.update(len(texts))
+            return result
+        def embed_query(self, text):
+            return self._model.embed_query(text)
     
-    for i in tqdm(range(0, total, batch_size), desc="Embedding", unit="batch"):
-        batch = chunks[i:i + batch_size]
-        if vectorstore is None:
-            # First batch: create the vector store
-            vectorstore = LanceDB.from_documents(
-                documents=batch,
-                embedding=embedding_model,
-                uri=uri,
-                table_name=table_name
-            )
-        else:
-            # Subsequent batches: add to existing store
-            vectorstore.add_documents(batch)
+    progress_embedding = ProgressEmbeddings(embedding_model, pbar)
     
+    # Single call to create vector store with all documents
+    vectorstore = LanceDB.from_documents(
+        documents=chunks,
+        embedding=progress_embedding,
+        uri=uri,
+        table_name=table_name
+    )
+    pbar.close()
+    
+    # Verify
+    tbl = db.open_table(table_name)
+    row_count = tbl.count_rows()
     print(f"\nVector store created at {uri} (table: {table_name})")
-    print(f"   Total chunks embedded: {total}")
+    print(f"   Total chunks: {total} | Rows in DB: {row_count}")
 
     # Free VRAM
     print("\n--- Cleaning up resources ---")
