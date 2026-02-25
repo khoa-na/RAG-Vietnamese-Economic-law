@@ -204,8 +204,6 @@ The retrieval-augmented generation chain follows this flow:
 **Issue**: `ModuleNotFoundError` when running scripts
 - **Solution**: Ensure all dependencies are installed via pip
 
-**Issue**: Ollama connection errors
-- **Solution**: Verify Ollama is running with `ollama serve`
 
 **Issue**: Empty retrieval results
 - **Solution**: Check that documents exist in `docs/` and vector database is built
@@ -249,7 +247,7 @@ Please refer to the repository license file for usage terms.
 ## Acknowledgments
 
 - Legal documents sourced from [phapluat.gov.vn](https://phapluat.gov.vn)
-- Embedding model: Qwen3-Embedding by Alibaba Cloud
+- Embedding model: `dangvantuan/vietnamese-document-embedding` by Dang Van Tuan
 - LLM service: MegaLLM
 - Vector database: ChromaDB
 - Framework: LangChain

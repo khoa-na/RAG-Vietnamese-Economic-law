@@ -12,7 +12,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -41,15 +41,11 @@ def get_vectorstore():
     """Lazy load vector store."""
     global _vectorstore
     if _vectorstore is None:
-        if EMBEDDING_CONFIG["provider"] == "huggingface":
-            from langchain_huggingface import HuggingFaceEmbeddings
-            embedding_model = HuggingFaceEmbeddings(
-                model_name=EMBEDDING_CONFIG["model"],
-                model_kwargs={"trust_remote_code": True}
-            )
-        else:
-            embedding_model = OllamaEmbeddings(model=EMBEDDING_CONFIG["model"])
-            
+        embedding_model = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_CONFIG["model"],
+            model_kwargs={"trust_remote_code": True}
+        )
+        
         _vectorstore = Chroma(
             persist_directory=VECTORSTORE_CONFIG["persist_directory"],
             embedding_function=embedding_model,

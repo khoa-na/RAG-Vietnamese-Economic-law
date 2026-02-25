@@ -46,7 +46,6 @@ LLM_CONFIG = {
 # Embedding Configuration
 EMBEDDING_CONFIG = {
     "model": "dangvantuan/vietnamese-document-embedding", # Vietnamese model
-    "provider": "huggingface"
 }
 
 # Debug Configuration
