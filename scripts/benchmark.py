@@ -4,14 +4,15 @@ import sys
 import os
 from dotenv import load_dotenv
 
-# Add project root to path
-sys.path.append(os.getcwd())
+# Project root resolution
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
 # Load env variables including API key
 load_dotenv()
 
-from rag_graph import build_rag_graph
-from graph_state import create_initial_state
+from src.graph import build_rag_graph
+from src.state import create_initial_state
 
 def benchmark():
     print("--- Starting Benchmark ---")

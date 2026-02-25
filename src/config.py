@@ -3,6 +3,11 @@ Configuration file for LangGraph RAG system.
 Contains all configurable parameters for graph behavior.
 """
 
+import os
+
+# Project root directory (parent of src/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Retrieval Configuration
 RETRIEVAL_CONFIG = {
     "k": 3,                          # Number of documents to retrieve
@@ -32,8 +37,13 @@ MEMORY_CONFIG = {
 
 # Vector Store Configuration
 VECTORSTORE_CONFIG = {
-    "persist_directory": "db/chroma_db",
+    "persist_directory": os.path.join(PROJECT_ROOT, "db", "chroma_db"),
     "collection_metadata": {"hnsw:space": "cosine"}
+}
+
+# Data Configuration
+DATA_CONFIG = {
+    "raw_docs_path": os.path.join(PROJECT_ROOT, "data", "raw"),
 }
 
 # LLM Configuration

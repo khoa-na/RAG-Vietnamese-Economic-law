@@ -18,8 +18,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import HumanMessage, AIMessage
 
-from graph_state import RAGState
-from graph_config import (
+from src.state import RAGState
+from src.config import (
     RETRIEVAL_CONFIG, 
     GRADING_CONFIG, 
     GENERATION_CONFIG,

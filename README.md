@@ -73,17 +73,17 @@ This installs the necessary browser binaries for web scraping.
 If you want to fetch the latest legal documents from official sources:
 
 ```bash
-python crawler.py
+python scripts/crawler.py
 ```
 
-This will download Vietnamese economic laws to `docs/`.
+This will download Vietnamese economic laws to `data/raw/`.
 
 ### Step 2: Build the Knowledge Base
 
-Process documents from the `docs/` folder and create the vector database:
+Process documents from the `data/raw/` folder and create the vector database:
 
 ```bash
-python ingestion_pipeline.py
+python scripts/ingest.py
 ```
 
 **Important Notes**:
@@ -96,7 +96,7 @@ python ingestion_pipeline.py
 Start the question-answering system:
 
 ```bash
-python rag_chatbot_graph.py
+python main.py
 ```
 
 **Example Interaction**:
@@ -108,49 +108,44 @@ AI trả lời: Mua bán hàng hóa là hoạt động thương mại... (Trích
 
 To exit the chatbot, type `exit`, `quit`, or `thoát`.
 
-### Step 4: Debug Mode (Optional)
+### Step 4: Benchmark (Optional)
 
-To inspect which document chunks are being retrieved before the AI generates an answer:
-
-```bash
-python 3_rag_debug.py
-```
-
-This is useful for:
-- Verifying retrieval accuracy
-- Understanding which legal articles are being referenced
-- Debugging unexpected answers
-- Tuning retrieval parameters
-
-### Step 5: Resource Management
-
-The system automatically unloads models when you exit the chatbot. You can also run:
+Run performance benchmarks on the system:
 
 ```bash
-python unload_models.py
+python scripts/benchmark.py
 ```
 
 ## Project Structure
 
 ```
 RAG-Vietnamese-Economic-law/
-├── crawler.py              # Web crawler for legal documents from phapluat.gov.vn
-├── ingestion_pipeline.py   # Document processing, chunking, and embedding pipeline
-├── rag_chatbot.py          # Interactive RAG chatbot interface
-├── 3_rag_debug.py          # Debug tool with verbose retrieval output
-├── unload_models.py        # Utility to free VRAM by unloading models
-├── docs/                   # Directory for legal text files (.txt format)
-├── db/                     # ChromaDB vector database storage
-├── .env                    # Environment variables (API keys)
-├── .gitignore              # Git ignore configuration
-└── README.md               # This file
+├── main.py                     # Entry point - Interactive RAG chatbot
+├── src/                        # Core RAG package
+│   ├── __init__.py
+│   ├── config.py               # All configuration parameters
+│   ├── state.py                # RAGState schema (TypedDict)
+│   ├── nodes.py                # Graph node implementations (7 nodes)
+│   ├── graph.py                # LangGraph builder and routing
+│   └── utils.py                # VRAM cleanup utilities
+├── scripts/                    # Utility scripts
+│   ├── crawler.py              # Web crawler for legal documents
+│   ├── ingest.py               # Document ingestion pipeline
+│   └── benchmark.py            # Performance benchmark
+├── data/
+│   └── raw/                    # Legal text files (.txt format)
+├── db/
+│   └── chroma_db/              # ChromaDB vector database storage
+├── .env                        # Environment variables (API keys)
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
 ```
 
 ## Configuration
 
 ### Chunking Parameters
 
-The system uses optimized chunking settings in `ingestion_pipeline.py`:
+The system uses optimized chunking settings in `scripts/ingest.py`:
 
 - **Chunk Size**: 8000 characters (matches embedding model's optimal context window)
 - **Chunk Overlap**: 800 characters (10% overlap to preserve context across boundaries)
@@ -158,7 +153,7 @@ The system uses optimized chunking settings in `ingestion_pipeline.py`:
 
 ### Retrieval Parameters
 
-Configured in `graph_config.py`:
+Configured in `src/config.py`:
 
 - **Top K**: 3 most relevant chunks (optimized for speed)
 - **Score Threshold**: 0.2

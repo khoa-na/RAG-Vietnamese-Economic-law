@@ -13,8 +13,8 @@ sys.stdout.reconfigure(encoding='utf-8')
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
-from graph_state import RAGState
-from graph_nodes import (
+from src.state import RAGState
+from src.nodes import (
     analyze_query_node,
     retrieve_documents_node,
     grade_documents_node,
@@ -23,7 +23,7 @@ from graph_nodes import (
     direct_answer_node,
     clarify_query_node
 )
-from graph_config import MEMORY_CONFIG
+from src.config import MEMORY_CONFIG
 
 
 def route_after_analysis(state: RAGState) -> Literal["retrieve", "direct_answer", "clarify"]:
@@ -135,7 +135,7 @@ def invoke_rag_graph(question: str, thread_id: str = "default", verbose: bool = 
     app = build_rag_graph()
     
     # Create initial state
-    from graph_state import create_initial_state
+    from src.state import create_initial_state
     initial_state = create_initial_state(question)
     
     # Configure execution

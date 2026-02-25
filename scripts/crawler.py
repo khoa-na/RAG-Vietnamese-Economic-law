@@ -9,7 +9,8 @@ from bs4 import BeautifulSoup
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Configuration
-OUTPUT_DIR = "docs"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 
 # List of laws to crawl (URL, Filename)
 LAWS_TO_CRAWL = [
