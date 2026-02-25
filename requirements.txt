@@ -5,9 +5,8 @@ langchain-core>=0.3.0
 langchain-community>=0.3.0
 
 # Vector Store and Embeddings
-langchain-chroma>=0.1.0
+lancedb>=0.15.0
 langchain-huggingface>=0.1.0
-chromadb>=0.5.0
 sentence-transformers>=2.0.0
 
 # LLM Integration

@@ -10,7 +10,7 @@ This system combines semantic search capabilities with natural language generati
 
 - **Semantic Chunking**: Intelligent document splitting strategy that respects Vietnamese legal document hierarchy (Chapter → Section → Article → Clause → Point) to preserve legal context
 - **Advanced Embeddings**: Utilizes `dangvantuan/vietnamese-document-embedding` for high-quality semantic search, specifically optimized for Vietnamese legal text.
-- **Vector Database**: ChromaDB implementation with cosine similarity for efficient and accurate retrieval.
+- **Vector Database**: LanceDB — disk-native vector store with minimal RAM usage and cosine similarity search.
 - **LLM Integration**: Connects to MegaLLM (OpenAI-compatible API) for natural language answer generation.
 - **Source Citation**: Automatically cites specific legal articles and clauses in responses.
 - **Debug Tools**: Built-in utilities to inspect retrieved chunks and verify retrieval accuracy.
@@ -135,7 +135,7 @@ RAG-Vietnamese-Economic-law/
 ├── data/
 │   └── raw/                    # Legal text files (.txt format)
 ├── db/
-│   └── chroma_db/              # ChromaDB vector database storage
+│   └── lancedb/               # LanceDB vector database storage
 ├── .env                        # Environment variables (API keys)
 ├── requirements.txt            # Python dependencies
 └── README.md                   # This file
@@ -179,7 +179,7 @@ The system uses `dangvantuan/vietnamese-document-embedding`, a specialized model
 1. **Loading**: Reads `.txt` files with auto encoding detection
 2. **Chunking**: Splits documents using recursive character splitting
 3. **Embedding**: Generates vector embeddings for each chunk
-4. **Storage**: Persists in ChromaDB with cosine similarity indexing
+4. **Storage**: Persists in LanceDB with cosine similarity indexing
 
 ### RAG Chain
 
@@ -244,7 +244,7 @@ Please refer to the repository license file for usage terms.
 - Legal documents sourced from [phapluat.gov.vn](https://phapluat.gov.vn)
 - Embedding model: `dangvantuan/vietnamese-document-embedding` by Dang Van Tuan
 - LLM service: MegaLLM
-- Vector database: ChromaDB
+- Vector database: LanceDB
 - Framework: LangChain
 
 ## Contact

@@ -11,7 +11,7 @@ from typing import Dict, Any
 sys.stdout.reconfigure(encoding='utf-8')
 
 from dotenv import load_dotenv
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import LanceDB
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -45,11 +45,10 @@ def get_vectorstore():
             model_name=EMBEDDING_CONFIG["model"],
             model_kwargs={"trust_remote_code": True}
         )
-        
-        _vectorstore = Chroma(
-            persist_directory=VECTORSTORE_CONFIG["persist_directory"],
-            embedding_function=embedding_model,
-            collection_metadata=VECTORSTORE_CONFIG["collection_metadata"]
+        _vectorstore = LanceDB(
+            uri=VECTORSTORE_CONFIG["uri"],
+            embedding=embedding_model,
+            table_name=VECTORSTORE_CONFIG["table_name"]
         )
     return _vectorstore
 
@@ -135,12 +134,10 @@ def retrieve_documents_node(state: RAGState) -> Dict[str, Any]:
     # Use rewritten question if available, otherwise use original
     query = state.get("rewritten_question") or state["question"]
     
-    # Create retriever
+    # Create retriever (LanceDB uses similarity search with k)
     retriever = vectorstore.as_retriever(
-        search_type="similarity_score_threshold",
         search_kwargs={
             "k": RETRIEVAL_CONFIG["k"],
-            "score_threshold": RETRIEVAL_CONFIG["score_threshold"]
         }
     )
     

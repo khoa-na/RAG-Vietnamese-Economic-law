@@ -37,8 +37,9 @@ MEMORY_CONFIG = {
 
 # Vector Store Configuration
 VECTORSTORE_CONFIG = {
-    "persist_directory": os.path.join(PROJECT_ROOT, "db", "chroma_db"),
-    "collection_metadata": {"hnsw:space": "cosine"}
+    "uri": os.path.join(PROJECT_ROOT, "db", "lancedb"),
+    "table_name": "legal_docs",
+    "metric": "cosine"
 }
 
 # Data Configuration

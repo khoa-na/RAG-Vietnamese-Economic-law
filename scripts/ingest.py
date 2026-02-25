@@ -11,7 +11,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import LanceDB
 from dotenv import load_dotenv
 from src.utils import unload_model
 from src.config import VECTORSTORE_CONFIG, EMBEDDING_CONFIG, DATA_CONFIG
@@ -92,12 +92,14 @@ def split_documents(documents, chunk_size=8000, chunk_overlap=800):
     return chunks
 
 
-def create_vector_store(chunks, persist_directory=None):
-    """Create and persist ChromaDB vector store"""
-    if persist_directory is None:
-        persist_directory = VECTORSTORE_CONFIG["persist_directory"]
+def create_vector_store(chunks, uri=None, table_name=None):
+    """Create and persist LanceDB vector store with progress bar"""
+    if uri is None:
+        uri = VECTORSTORE_CONFIG["uri"]
+    if table_name is None:
+        table_name = VECTORSTORE_CONFIG["table_name"]
     
-    print("Creating embeddings and storing in ChromaDB...")
+    print("Creating embeddings and storing in LanceDB...")
     
     print("Initializing HuggingFace embedding model...")
     embedding_model = HuggingFaceEmbeddings(
@@ -105,16 +107,30 @@ def create_vector_store(chunks, persist_directory=None):
         model_kwargs={"trust_remote_code": True}
     )
     
-    print("--- Creating vector store ---")
-    vectorstore = Chroma.from_documents(
-        documents=chunks,
-        embedding=embedding_model,
-        persist_directory=persist_directory, 
-        collection_metadata=VECTORSTORE_CONFIG["collection_metadata"]
-    )
-    print("--- Finished creating vector store ---")
+    # Embed in batches with progress bar
+    from tqdm import tqdm
+    batch_size = 32
+    total = len(chunks)
     
-    print(f"Vector store created and saved to {persist_directory}")
+    print(f"Embedding {total} chunks (batch size: {batch_size})...")
+    vectorstore = None
+    
+    for i in tqdm(range(0, total, batch_size), desc="Embedding", unit="batch"):
+        batch = chunks[i:i + batch_size]
+        if vectorstore is None:
+            # First batch: create the vector store
+            vectorstore = LanceDB.from_documents(
+                documents=batch,
+                embedding=embedding_model,
+                uri=uri,
+                table_name=table_name
+            )
+        else:
+            # Subsequent batches: add to existing store
+            vectorstore.add_documents(batch)
+    
+    print(f"\nVector store created at {uri} (table: {table_name})")
+    print(f"   Total chunks embedded: {total}")
 
     # Free VRAM
     print("\n--- Cleaning up resources ---")
