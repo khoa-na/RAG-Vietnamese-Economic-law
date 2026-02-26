@@ -9,6 +9,7 @@ This system combines semantic search capabilities with natural language generati
 ## Key Features
 
 - **Semantic Chunking**: Intelligent document splitting strategy that respects Vietnamese legal document hierarchy (Chapter → Section → Article → Clause → Point) to preserve legal context
+- **Data Preprocessing**: Robust regex-based cleaning of raw legal text to fix hard-wraps, remove arbitrary separator lines, and join broken paragraphs.
 - **Advanced Embeddings**: Utilizes `dangvantuan/vietnamese-document-embedding` for high-quality semantic search, specifically optimized for Vietnamese legal text.
 - **Vector Database**: LanceDB -- disk-native vector store with minimal RAM usage and cosine similarity search.
 - **Hybrid Search**: Combines dense vector search with BM25 full-text search (via Tantivy) using Reciprocal Rank Fusion for superior retrieval accuracy.
@@ -22,9 +23,10 @@ This system combines semantic search capabilities with natural language generati
 The system consists of four main components:
 
 1. **Data Acquisition**: Web crawler for fetching legal documents from official sources
-2. **Ingestion Pipeline**: Document processing, chunking, and vector embedding generation
-3. **RAG Chatbot**: Interactive question-answering interface with retrieval and generation
-4. **Utilities**: Resource management and debugging tools
+2. **Data Processing**: Preprocessing raw text to fix broken format before splitting
+3. **Ingestion Pipeline**: Document chunking and vector embedding generation
+4. **RAG Chatbot**: Interactive question-answering interface with retrieval and generation
+5. **Utilities**: Resource management and debugging tools
 
 ## Prerequisites
 

@@ -15,6 +15,7 @@ from langchain_community.vectorstores import LanceDB
 from dotenv import load_dotenv
 from src.utils import unload_model
 from src.config import VECTORSTORE_CONFIG, EMBEDDING_CONFIG, DATA_CONFIG
+from src.preprocess import clean_legal_text
 
 load_dotenv()
 
@@ -42,6 +43,15 @@ def load_documents(docs_path=None):
         raise FileNotFoundError(f"No .txt files found in {docs_path}. Please add your legal documents.")
     
     print(f"Found {len(documents)} documents in total.")
+    
+    print("Preprocessing documents to clean up formatting issues...")
+    for doc in documents:
+        # Save original length for metrics
+        original_len = len(doc.page_content)
+        doc.page_content = clean_legal_text(doc.page_content)
+        doc.metadata["preprocessed"] = True
+        doc.metadata["original_length"] = original_len
+        doc.metadata["cleaned_length"] = len(doc.page_content)
     
     for i, doc in enumerate(documents[:2]):
         print(f"\nDocument {i+1}:")
