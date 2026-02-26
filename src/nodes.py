@@ -35,20 +35,25 @@ load_dotenv()
 _vectorstore = None
 _llm = None
 _embedding_model = None
+_fts_initialized = False
 
 
 def get_vectorstore():
-    """Lazy load vector store."""
+    """Lazy load vector store with hybrid search support."""
     global _vectorstore
     if _vectorstore is None:
+        from lancedb.rerankers import LinearCombinationReranker
+        
         embedding_model = HuggingFaceEmbeddings(
             model_name=EMBEDDING_CONFIG["model"],
             model_kwargs={"trust_remote_code": True}
         )
+        reranker = LinearCombinationReranker(weight=0.7)  # 0.7 dense + 0.3 BM25
         _vectorstore = LanceDB(
             uri=VECTORSTORE_CONFIG["uri"],
             embedding=embedding_model,
-            table_name=VECTORSTORE_CONFIG["table_name"]
+            table_name=VECTORSTORE_CONFIG["table_name"],
+            reranker=reranker
         )
     return _vectorstore
 
@@ -127,28 +132,75 @@ def analyze_query_node(state: RAGState) -> Dict[str, Any]:
 def retrieve_documents_node(state: RAGState) -> Dict[str, Any]:
     """
     Retrieve relevant documents from the vector store.
-    Uses the original question or rewritten question if available.
+    Uses hybrid search (BM25 + Dense) for better retrieval.
     """
     vectorstore = get_vectorstore()
     
     # Use rewritten question if available, otherwise use original
     query = state.get("rewritten_question") or state["question"]
     
-    # Create retriever (LanceDB uses similarity search with k)
-    retriever = vectorstore.as_retriever(
-        search_kwargs={
-            "k": RETRIEVAL_CONFIG["k"],
-        }
+    # Use LanceDB native hybrid search API (bypasses langchain wrapper bugs)
+    from langchain_core.documents import Document
+    import json
+    
+    tbl = vectorstore.get_table()
+    
+    # Create FTS index if not exists (idempotent with replace=True)
+    global _fts_initialized
+    if not _fts_initialized:
+        tbl.create_fts_index("text", replace=True)
+        _fts_initialized = True
+    
+    # Embed query for vector search
+    query_vector = vectorstore._embedding.embed_query(query)
+    
+    # Hybrid search: vector + FTS combined with reranker
+    from lancedb.rerankers import LinearCombinationReranker
+    reranker = LinearCombinationReranker(weight=0.7)
+    
+    hybrid_results = (
+        tbl.search(query=query_vector, vector_column_name="vector")
+        .limit(RETRIEVAL_CONFIG["k"] * 2)  # Get more candidates for reranking
+        .to_list()
     )
     
-    # Retrieve documents
-    documents = retriever.invoke(query)
+    fts_results = (
+        tbl.search(query=query, query_type="fts")
+        .limit(RETRIEVAL_CONFIG["k"] * 2)
+        .to_list()
+    )
+    
+    # Merge results by RRF (Reciprocal Rank Fusion)
+    scored = {}
+    for rank, r in enumerate(hybrid_results):
+        scored[r["id"]] = {"data": r, "rrf": 1.0 / (rank + 60)}
+    for rank, r in enumerate(fts_results):
+        key = r["id"]
+        rrf_score = 1.0 / (rank + 60)
+        if key in scored:
+            scored[key]["rrf"] += rrf_score  # Boost docs found in both
+        else:
+            scored[key] = {"data": r, "rrf": rrf_score}
+    
+    # Sort by combined RRF score and take top-K
+    ranked = sorted(scored.values(), key=lambda x: x["rrf"], reverse=True)
+    top_k = ranked[:RETRIEVAL_CONFIG["k"]]
+    
+    # Convert to LangChain Documents
+    results = []
+    for item in top_k:
+        r = item["data"]
+        metadata = json.loads(r["metadata"]) if isinstance(r["metadata"], str) else r["metadata"]
+        results.append(Document(page_content=r["text"], metadata=metadata))
     
     return {
-        "context": documents,
+        "context": results,
         "debug_info": {
-            "retrieved_count": len(documents),
-            "query_used": query
+            "retrieved_count": len(results),
+            "query_used": query,
+            "search_type": "hybrid (BM25 + Dense + RRF)",
+            "vector_hits": len(hybrid_results),
+            "fts_hits": len(fts_results)
         }
     }
 

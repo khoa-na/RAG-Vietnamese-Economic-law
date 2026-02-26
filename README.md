@@ -10,7 +10,8 @@ This system combines semantic search capabilities with natural language generati
 
 - **Semantic Chunking**: Intelligent document splitting strategy that respects Vietnamese legal document hierarchy (Chapter → Section → Article → Clause → Point) to preserve legal context
 - **Advanced Embeddings**: Utilizes `dangvantuan/vietnamese-document-embedding` for high-quality semantic search, specifically optimized for Vietnamese legal text.
-- **Vector Database**: LanceDB — disk-native vector store with minimal RAM usage and cosine similarity search.
+- **Vector Database**: LanceDB -- disk-native vector store with minimal RAM usage and cosine similarity search.
+- **Hybrid Search**: Combines dense vector search with BM25 full-text search (via Tantivy) using Reciprocal Rank Fusion for superior retrieval accuracy.
 - **LLM Integration**: Connects to MegaLLM (OpenAI-compatible API) for natural language answer generation.
 - **Source Citation**: Automatically cites specific legal articles and clauses in responses.
 - **Debug Tools**: Built-in utilities to inspect retrieved chunks and verify retrieval accuracy.

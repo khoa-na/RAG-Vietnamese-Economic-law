@@ -6,6 +6,7 @@ langchain-community>=0.3.0
 
 # Vector Store and Embeddings
 lancedb>=0.15.0
+tantivy
 langchain-huggingface>=0.1.0
 sentence-transformers>=2.0.0
 
