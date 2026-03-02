@@ -10,6 +10,7 @@ This system combines semantic search capabilities with natural language generati
 
 - **Semantic Chunking**: Intelligent document splitting strategy that respects Vietnamese legal document hierarchy (Chapter → Section → Article → Clause → Point) to preserve legal context
 - **Data Preprocessing**: Robust regex-based cleaning of raw legal text to fix hard-wraps, remove arbitrary separator lines, and join broken paragraphs.
+- **Metadata Enrichment**: Automatic extraction of law name, chapter (Chương), section (Mục), and article (Điều) metadata for each chunk, enabling precise source citation.
 - **Advanced Embeddings**: Utilizes `dangvantuan/vietnamese-document-embedding` for high-quality semantic search, specifically optimized for Vietnamese legal text.
 - **Vector Database**: LanceDB -- disk-native vector store with minimal RAM usage and cosine similarity search.
 - **Hybrid Search**: Combines dense vector search with BM25 full-text search (via Tantivy) using Reciprocal Rank Fusion for superior retrieval accuracy.
@@ -130,6 +131,8 @@ RAG-Vietnamese-Economic-law/
 │   ├── state.py                # RAGState schema (TypedDict)
 │   ├── nodes.py                # Graph node implementations (7 nodes)
 │   ├── graph.py                # LangGraph builder and routing
+│   ├── preprocess.py           # Vietnamese legal text cleaning
+│   ├── metadata.py             # Law name and structure extraction
 │   └── utils.py                # VRAM cleanup utilities
 ├── scripts/                    # Utility scripts
 │   ├── crawler.py              # Web crawler for legal documents
@@ -180,9 +183,11 @@ The system uses `dangvantuan/vietnamese-document-embedding`, a specialized model
 ### Document Processing Pipeline
 
 1. **Loading**: Reads `.txt` files with auto encoding detection
-2. **Chunking**: Splits documents using recursive character splitting
-3. **Embedding**: Generates vector embeddings for each chunk
-4. **Storage**: Persists in LanceDB with cosine similarity indexing
+2. **Preprocessing**: Cleans raw legal text (fixes hard-wraps, removes separator lines, normalizes whitespace)
+3. **Chunking**: Splits documents using recursive character splitting with Vietnamese legal hierarchy separators
+4. **Metadata Enrichment**: Extracts law name, chapter, section, and article info for each chunk
+5. **Embedding**: Generates vector embeddings for each chunk
+6. **Storage**: Persists in LanceDB with cosine similarity indexing and FTS index
 
 ### RAG Chain
 
@@ -222,12 +227,12 @@ The retrieval-augmented generation chain follows this flow:
 Potential improvements for the system:
 
 - Support for additional legal document formats (PDF, DOCX)
-- Multi-turn conversation with context retention
-- Advanced citation formatting with clickable references
-- Web interface for easier access
+- Streaming LLM responses for faster perceived latency
+- Metadata-based filtering during retrieval (e.g., filter by specific law)
+- Persistent conversation memory (SQLite-backed checkpointer)
+- Web interface (Gradio or Streamlit) for easier access
 - Batch query processing
 - Fine-tuned embedding model for Vietnamese legal text
-- Hybrid search combining semantic and keyword matching
 
 ## Contributing
 

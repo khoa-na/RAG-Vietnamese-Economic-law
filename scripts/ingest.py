@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from src.utils import unload_model
 from src.config import VECTORSTORE_CONFIG, EMBEDDING_CONFIG, DATA_CONFIG
 from src.preprocess import clean_legal_text
+from src.metadata import enrich_chunk_metadata
 
 load_dotenv()
 
@@ -120,7 +121,7 @@ def create_vector_store(chunks, uri=None, table_name=None):
     # Delete existing table to avoid conflicts
     import lancedb as ldb
     db = ldb.connect(uri)
-    existing = db.table_names()
+    existing = db.list_tables()
     if table_name in existing:
         db.drop_table(table_name)
         print(f"Dropped existing table '{table_name}'")
@@ -168,9 +169,31 @@ def create_vector_store(chunks, uri=None, table_name=None):
     return vectorstore
 
 
+def enrich_metadata(chunks):
+    """Enrich each chunk with law name and structural metadata (Chương, Mục, Điều)."""
+    print("Enriching chunks with metadata (law name, Chương, Mục, Điều)...")
+    for chunk in chunks:
+        enrich_chunk_metadata(chunk)
+    
+    # Print sample
+    if chunks:
+        sample = chunks[0]
+        print(f"\n--- Sample Metadata ---")
+        print(f"  law_name: {sample.metadata.get('law_name', 'N/A')}")
+        print(f"  chuong:   {sample.metadata.get('chuong', 'N/A')}")
+        print(f"  muc:      {sample.metadata.get('muc', 'N/A')}")
+        print(f"  dieu:     {sample.metadata.get('dieu', 'N/A')}")
+        print(f"  dieu_ten: {sample.metadata.get('dieu_ten', 'N/A')}")
+        print("-" * 50)
+    
+    print(f"Enriched {len(chunks)} chunks with metadata.")
+    return chunks
+
+
 def main():
     documents = load_documents()
     chunks = split_documents(documents)
+    chunks = enrich_metadata(chunks)
     vectorstore = create_vector_store(chunks)
 
 

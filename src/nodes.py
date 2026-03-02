@@ -372,8 +372,28 @@ def generate_answer_node(state: RAGState) -> Dict[str, Any]:
     question = state["question"]
     documents = state["context"]
     
-    # Format context
-    context_text = "\n\n".join([doc.page_content for doc in documents])
+    # Format context with metadata headers
+    context_parts = []
+    for doc in documents:
+        header_parts = []
+        law_name = doc.metadata.get("law_name", "")
+        if law_name:
+            header_parts.append(law_name)
+        dieu = doc.metadata.get("dieu", "")
+        if dieu:
+            dieu_ten = doc.metadata.get("dieu_ten", "")
+            header_parts.append(f"{dieu}. {dieu_ten}" if dieu_ten else dieu)
+        chuong = doc.metadata.get("chuong", "")
+        if chuong:
+            chuong_ten = doc.metadata.get("chuong_ten", "")
+            header_parts.append(f"({chuong}. {chuong_ten})" if chuong_ten else f"({chuong})")
+        
+        header = " — ".join(header_parts) if header_parts else ""
+        if header:
+            context_parts.append(f"[{header}]\n{doc.page_content}")
+        else:
+            context_parts.append(doc.page_content)
+    context_text = "\n\n---\n\n".join(context_parts)
     
     # Create prompt
     system_prompt = """Bạn là một trợ lý luật sư AI chuyên về Luật Kinh tế Việt Nam.
