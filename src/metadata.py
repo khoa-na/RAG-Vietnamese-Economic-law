@@ -1,6 +1,6 @@
 """
 Metadata extraction for Vietnamese legal document chunks.
-Extracts law name from filename and structural metadata (Chương, Mục, Điều) from text.
+Extracts law name from filename and structural metadata (Chương, Mục, Điều, Khoản, Điểm) from text.
 """
 
 import os
@@ -31,25 +31,16 @@ LAW_NAME_MAP = {
 def extract_law_name(filename: str) -> str:
     """
     Extract law name from filename.
-    
+
     Uses a predefined mapping for known files, falls back to parsing the filename.
-    
-    Args:
-        filename: Basename of the file (e.g., 'Luat_Doanh_Nghiep_2020.txt')
-    
-    Returns:
-        Vietnamese law name (e.g., 'Luật Doanh Nghiệp 2020')
     """
     basename = os.path.basename(filename)
-    
-    # Check predefined map first
+
     if basename in LAW_NAME_MAP:
         return LAW_NAME_MAP[basename]
-    
-    # Fallback: parse from filename
-    name = os.path.splitext(basename)[0]  # Remove .txt
-    name = name.replace("_", " ")         # Underscores to spaces
-    # Replace 'Luat' with 'Luật' if at start
+
+    name = os.path.splitext(basename)[0]
+    name = name.replace("_", " ")
     if name.startswith("Luat "):
         name = "Luật " + name[5:]
     return name
@@ -59,34 +50,36 @@ def extract_law_name(filename: str) -> str:
 # Structure Metadata Extraction
 # ============================================================================
 
-# Regex patterns for Vietnamese legal document structure
 _CHUONG_PATTERN = re.compile(
-    r'Chương\s+([IVXLCDM]+|\d+)\.?\s*(.*?)(?:\n|$)',
+    r"Chương\s+([IVXLCDM]+|\d+)\.?\s*(.*?)(?:\n|$)",
     re.IGNORECASE
 )
 
 _MUC_PATTERN = re.compile(
-    r'Mục\s+(\d+)\.?\s*(.*?)(?:\n|$)',
+    r"Mục\s+(\d+)\.?\s*(.*?)(?:\n|$)",
     re.IGNORECASE
 )
 
 _DIEU_PATTERN = re.compile(
-    r'Điều\s+(\d+)\.?\s*(.*?)(?:\n|$)'
+    r"Điều\s+(\d+)\.?\s*(.*?)(?:\n|$)"
+)
+
+_KHOAN_PATTERN = re.compile(
+    r"(?m)^(\d+)\.\s+"
+)
+
+_DIEM_PATTERN = re.compile(
+    r"(?m)^([a-zđ])\)\s+",
+    re.IGNORECASE
 )
 
 
 def extract_structure_metadata(text: str) -> dict:
     """
     Extract structural metadata from a chunk of legal text.
-    
-    Finds the LAST occurrence of Chương/Mục and the FIRST Điều in the chunk,
-    which best represents the primary content of the chunk.
-    
-    Args:
-        text: The text content of a document chunk
-    
-    Returns:
-        Dict with keys: chuong, chuong_ten, muc, muc_ten, dieu, dieu_ten
+
+    Returns the most relevant chapter/section/article and the clause/point range
+    covered by the chunk.
     """
     result = {
         "chuong": "",
@@ -95,48 +88,55 @@ def extract_structure_metadata(text: str) -> dict:
         "muc_ten": "",
         "dieu": "",
         "dieu_ten": "",
+        "khoan_start": "",
+        "khoan_end": "",
+        "diem_start": "",
+        "diem_end": "",
     }
-    
-    # Find all Chương matches, take the last one (most relevant to chunk content)
+
     chuong_matches = list(_CHUONG_PATTERN.finditer(text))
     if chuong_matches:
         match = chuong_matches[-1]
         result["chuong"] = f"Chương {match.group(1)}"
         result["chuong_ten"] = match.group(2).strip().rstrip('.')
-    
-    # Find all Mục matches, take the last one
+
     muc_matches = list(_MUC_PATTERN.finditer(text))
     if muc_matches:
         match = muc_matches[-1]
         result["muc"] = f"Mục {match.group(1)}"
         result["muc_ten"] = match.group(2).strip().rstrip('.')
-    
-    # Find all Điều matches, take the first one (primary article in this chunk)
+
     dieu_match = _DIEU_PATTERN.search(text)
     if dieu_match:
         result["dieu"] = f"Điều {dieu_match.group(1)}"
         result["dieu_ten"] = dieu_match.group(2).strip().rstrip('.')
-    
+
+    khoan_matches = list(_KHOAN_PATTERN.finditer(text))
+    if khoan_matches:
+        result["khoan_start"] = khoan_matches[0].group(1)
+        result["khoan_end"] = khoan_matches[-1].group(1)
+
+    diem_matches = list(_DIEM_PATTERN.finditer(text))
+    if diem_matches:
+        result["diem_start"] = diem_matches[0].group(1)
+        result["diem_end"] = diem_matches[-1].group(1)
+
     return result
 
 
 def enrich_chunk_metadata(chunk, filename: str = None) -> None:
     """
     Enrich a LangChain Document chunk with law name and structure metadata.
-    Modifies the chunk's metadata in-place.
-    
-    Args:
-        chunk: A LangChain Document object
-        filename: Optional filename override; defaults to chunk.metadata['source']
+    Preserves metadata that was already set during chunk construction.
     """
     source = filename or os.path.basename(chunk.metadata.get("source", ""))
-    
-    # Add law name
+
     chunk.metadata["law_name"] = extract_law_name(source)
-    
-    # Add structural metadata
+
     structure = extract_structure_metadata(chunk.page_content)
-    chunk.metadata.update(structure)
+    for key, value in structure.items():
+        if value and not chunk.metadata.get(key):
+            chunk.metadata[key] = value
 
 
 # ============================================================================
@@ -144,7 +144,6 @@ def enrich_chunk_metadata(chunk, filename: str = None) -> None:
 # ============================================================================
 
 if __name__ == "__main__":
-    # Test law name extraction
     print("=== Law Name Extraction ===")
     test_files = [
         "Luat_Doanh_Nghiep_2020.txt",
@@ -152,14 +151,13 @@ if __name__ == "__main__":
         "Unknown_Law_2025.txt",
     ]
     for f in test_files:
-        print(f"  {f} → {extract_law_name(f)}")
-    
-    # Test structure extraction
+        print(f"  {f} -> {extract_law_name(f)}")
+
     print("\n=== Structure Extraction ===")
     test_texts = [
         "Chương II. THÀNH LẬP DOANH NGHIỆP\nĐiều 17. Quyền thành lập, góp vốn\n1. Tổ chức, cá nhân có quyền...",
         "Mục 1. QUY ĐỊNH CHUNG\nĐiều 54. Nguyên tắc tố tụng cạnh tranh\n1. Hoạt động tố tụng...",
-        "Điều 4. Giải thích từ ngữ\nTrong Luật này, các từ ngữ dưới đây...",
+        "Điều 4. Giải thích từ ngữ\n1. Chứng khoán là tài sản.\na) Cổ phiếu.\nb) Trái phiếu.",
         "Một đoạn text không có cấu trúc pháp lý",
     ]
     for text in test_texts:
